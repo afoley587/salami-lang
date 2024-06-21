@@ -1,0 +1,11 @@
+var y = 5;
+var z = 10;
+
+if (y < z) {
+    var y = 11;
+    exit y * y;
+} else {
+    var z = 12;
+    exit z * z;
+}
+exit 1;

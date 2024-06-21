@@ -10,7 +10,13 @@ import (
 )
 
 func main() {
-	file, err := os.Open("input.test")
+
+	args := os.Args
+
+	if len(args) < 2 {
+		panic("No file given...") // do some better cli/usage stuff here
+	}
+	file, err := os.Open(args[1])
 	if err != nil {
 		panic(err)
 	}
