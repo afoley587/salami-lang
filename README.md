@@ -9,7 +9,12 @@ My first attempt at creating a language with:
 * Interpreter
 
 It only works for simple calculations and the only supported 
-keyword is `var`. The output of the following salami-code:
+keywords are `var`, `if/else`, `gorlami`, and `dicocco`.
+
+`Gorlami` and `Diccoco` are inspired by the Inglorious Basterds (thanks Quinten)
+and denote the `function` and `return` keywords in other languages.
+
+The output of the following salami-code:
 
 ```
 var x = 5; 
