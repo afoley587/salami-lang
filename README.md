@@ -180,12 +180,161 @@ The runtime (8) system manages the execution, including memory management for
 variable assignments and function calls.
 
 ### Tokens
+So, what are tokens with some actual backing? Well, you can think of them as a 
+dictionary for atomic pieces of source code. How should you language handle 
+parentheses? How about curly braces? If your app needs to care about them, they
+should be tokens. Do you have keywords? Well, then those could also be tokens.
+
+If we look at a snippet of the salami tokens, we see:
+
+```golang
+    .
+    .
+    .
+	IDENT     = "IDENT"
+	INT       = "INT"
+	ASSIGN    = "="
+	PLUS      = "+"
+	MINUS     = "-"
+	ASTERISK  = "*"
+	SLASH     = "/"
+	SEMICOLON = ";"
+	GT        = ">"
+	LT        = "<"
+
+	LPAREN = "("
+	RPAREN = ")"
+	LBRACE = "{"
+	RBRACE = "}"
+	COMMA  = ","
+
+    VAR      = "VAR"
+	IF       = "IF"
+	ELSE     = "ELSE"
+	TRUE     = "TRUE"
+	FALSE    = "FALSE"
+	EXIT     = "EXIT"
+	FUNCTION = "FUNCTION"
+	RETURN   = "RETURN"
+    .
+    .
+    .
+```
+
+So our program will be able to handle:
+* Identifiers (variable/function names)
+* Integers
+* Assignment with the `=` operator
+* Mathematical operations with `+`, `-`, `*`, `/`
+* etc.
+
+We might also have keywords:
+
+```golang
+var keywords = map[string]TokenType{
+	"var":     VAR,
+	"if":      IF,
+	"else":    ELSE,
+	"true":    TRUE,
+	"false":   FALSE,
+	"exit":    EXIT,
+	"gorlami": FUNCTION,
+	"dicocco": RETURN,
+}
+```
+
+The above tells us that `var` is a special word. When we see
+a token of type `VAR`, we should treat it as the `var` keyword.
+This will be assigned some more meaning in the parser when we actually
+have different node types in our AST. But, if you were wondering why
+`dicocco` was a return statement, this is why!
 
 ### Lexer
+We now know the pieces that make up our language, but we need a way to read
+soure code line-by-line and character-by-character. That's where the lexer comes in.
 
-### AST
+A lexer needs to keep track of whatever character it is reading and try to map that 
+into a token that our language supports. A lexer's `Lex` function does just that. It
+reads a character (or set of characeters), interprets its meaning, and returns the 
+position and token type to the caller. Let's look at Salami's Lexer below:
 
-### Parser
+```golang
+func (l *Lexer) Lex() (LexPosition, tok.TokenType, string) {
+	for {
+        // Read a rune from the reader
+		r, _, err := l.reader.ReadRune()
+		if err != nil {
+			if err == io.EOF {
+				return l.pos, tok.EOF, ""
+			}
+
+			panic(err)
+		}
+
+        // move to the next position
+		l.pos.Column++
+		switch r {
+		case '\n':
+			l.handleNewLine()
+        // return an assignment operator
+		case '=':
+			return l.pos, tok.ASSIGN, "="
+        // return a plus operator
+		case '+':
+			return l.pos, tok.PLUS, "+"
+        // return a minus operator
+		case '-':
+			return l.pos, tok.MINUS, "-"
+        // ...
+		case '*':
+			return l.pos, tok.ASTERISK, "*"
+		case '/':
+			return l.pos, tok.SLASH, "/"
+		case ';':
+			return l.pos, tok.SEMICOLON, ";"
+		case '(':
+			return l.pos, tok.LPAREN, "("
+		case ')':
+			return l.pos, tok.RPAREN, ")"
+		case '{':
+			return l.pos, tok.LBRACE, "{"
+		case '}':
+			return l.pos, tok.RBRACE, "}"
+		case '>':
+			return l.pos, tok.GT, ">"
+		case '<':
+			return l.pos, tok.LT, "<"
+		case ',':
+			return l.pos, tok.COMMA, ","
+		default:
+
+			if unicode.IsSpace(r) {
+				continue // nothing to do here, just move on
+			} else if unicode.IsDigit(r) {
+                // If this is a number, we should try to read the whole
+                // thing, return the token type as int, and the whole
+                // integer that was read
+				starts := l.pos
+				l.goBack()
+				literal := l.readDigit()
+				return starts, tok.INT, literal
+			} else if unicode.IsPrint(r) {
+                // If this is a string, we should try to read the whole
+                // thing and then lookup the type of keyword it is
+				starts := l.pos
+				l.goBack()
+				literal := l.readIdentifier()
+				return starts, tok.KeywordLookup(literal), literal
+
+			} else {
+				return l.pos, tok.ILLEGAL, string(r)
+			}
+		}
+	}
+}
+```
+
+### Parser + AST
 
 ### Interpreter
 
