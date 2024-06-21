@@ -1,7 +1,7 @@
 # Building A Programming Language From Scratch
-## The Quentin Tarantino Inspired Salami-Lang
+## The Quentin Tarantino Inspired Programming Language
 
-### Overview
+## Overview
 
 Over the past few weeks, I have been trying to find some good documentation
 on how to build an interpreted language. There's a lot out there and it
@@ -12,13 +12,16 @@ what components are critical for an interpreted language, then guide ourselves
 into the nitty-gritty.
 
 Also - as an FYI - I won't be going through each line of code in detail in this
-project. However, I empower you to go to my [GitHub Repo]() and check out all of
+project. However, I empower you to go to my 
+[GitHub Repo](https://github.com/afoley587/salami-lang) and check out all of
 the code that you would like. Feel free to open issues, ask me questions, add
 functionality, etc.
 
 So, what are we building? We'll we are going to build an interpreted language.
 It's called salami, but it resembles a lot of code you've seen in other 
 languages (with a twist). Let's look at the below code snippet:
+
+![Salami](./imgs/thumbnail.png)
 
 ```shell
 gorlami sq(a) {
@@ -60,7 +63,7 @@ see the below video:
 ![Demo](./imgs/demo.gif)
 
 
-### Components Of An Interpreted Programming Language
+## Components Of An Interpreted Programming Language
 
 There are a few components of an interpreted programming language.
 
@@ -96,7 +99,7 @@ There are a few components of an interpreted programming language.
     code by providing built-in functions and handling interactions with the system.
 
 
-### Example Of An Interpreted Program
+## Example Of An Interpreted Program
 
 Let's say the user has given us the following source code (1):
 
@@ -179,7 +182,7 @@ throughout the lifecycle of this program.
 The runtime (8) system manages the execution, including memory management for 
 variable assignments and function calls.
 
-### Tokens
+## Tokens
 So, what are tokens with some actual backing? Well, you can think of them as a 
 dictionary for atomic pieces of source code. How should you language handle 
 parentheses? How about curly braces? If your app needs to care about them, they
@@ -249,7 +252,7 @@ This will be assigned some more meaning in the parser when we actually
 have different node types in our AST. But, if you were wondering why
 `dicocco` was a return statement, this is why!
 
-### Lexer
+## Lexer
 We now know the pieces that make up our language, but we need a way to read
 soure code line-by-line and character-by-character. That's where the lexer comes in.
 
@@ -338,10 +341,167 @@ realizes that this is a keyword and let's the parser know that. All unkown
 keywords, such as `variablename`, will be assumed to be identifiers and will be
 granted the IDENT token type.
 
-### Parser + AST
+## Parser + AST
 
-### Interpreter
+The parser now has the tokens and has to try to assign a more complete picture of them. 
+For example, if there is an `if` followed by a `(`, how should this be represented in the
+AST? How should it report arithmetic operations on the AST? These are the questions that
+the parser has to figure out.
 
-### Environment
+Operationally, it will read each token from the lexer until hits an EOF. It will take the token
+that it has been given and again parse it:
 
-### Runtime
+```golang
+func (p *Parser) ParseProgram() *ast.Program {
+	program := &ast.Program{}
+	program.Statements = []ast.Statement{}
+
+	for p.currentToken.Type != tok.EOF {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			program.Statements = append(program.Statements, stmt)
+		}
+		p.nextToken()
+	}
+
+	return program
+}
+
+func (p *Parser) parseStatement() ast.Statement {
+	switch p.currentToken.Type {
+	case tok.VAR:
+		return p.parseVarStatement()
+	case tok.IF:
+		return p.parseIfExpression().(ast.Statement)
+	case tok.FUNCTION:
+		return p.parseFunctionStatement()
+	case tok.RETURN:
+		return p.parseReturnStatement()
+	case tok.EXIT:
+		return p.parseExitStatement()
+	default:
+		return nil
+	}
+}
+```
+
+We won't dive into each function here because there's a lot. However,
+we can look at the `parseVarStatement` function:
+
+```golang
+func (p *Parser) parseVarStatement() *ast.VarStatement {
+	stmt := &ast.VarStatement{Token: p.currentToken}
+
+	if !p.expectPeek(tok.IDENT) {
+		return nil
+	}
+
+	stmt.Name = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
+
+	if !p.expectPeek(tok.ASSIGN) {
+		return nil
+	}
+
+	p.nextToken()
+	stmt.Value = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(tok.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+```
+
+First, we take the current token and create a data type for it that our AST can
+represent. Next, we make sure that the next token is an identifier. If the
+next token isn't an identifier, then we can't really use this statement so we
+return a nil. For example: `var var = 3;` - our language would see a VAR token
+followed by a VAR token, which is undefined behavior! We do the same for an assignemnt 
+operator and finally, an expression. An expression can be a single integer or another
+mathematical statement. For example, both of these are valid:
+
+* `var x = 3;`
+* `var x = 3 + 4;`
+
+This logic has to be built for each type of statement and literal we would 
+like to handle. We can see why the whole "tree" nature becomes very organic
+here, we can have nested and nested calls which render itself naturally
+to a tree structure.
+
+## Interpreter + Environment
+
+The parser returns a program or a set of AST nodes. These nodes are then
+given to the interpreter. The interpreter, as its name implies, interprets
+each type of node. Really, this means running all of the nodes and executing
+them as they should be executed. Let's look at our interpret function:
+
+
+```golang
+func (i *Interpreter) Interpret(node ast.Node) interface{} {
+	if i.Exited {
+		return i.ExitCode
+	}
+	switch node := node.(type) {
+	case *ast.Program:
+		return i.evalProgram(node)
+	case *ast.VarStatement:
+		return i.evalVarStatement(node)
+	case *ast.FunctionStatement:
+		return i.evalFunctionStatement(node)
+	case *ast.Identifier:
+		return i.evalIdentifier(node)
+	case *ast.IntegerLiteral:
+		return node.Value
+	case *ast.BooleanLiteral:
+		return node.Value
+	case *ast.IfExpression:
+		return i.evalIfExpression(node)
+	case *ast.BlockStatement:
+		return i.evalBlockStatement(node)
+	case *ast.InfixExpression:
+		return i.evalInfixExpression(node)
+	case *ast.FunctionLiteral:
+		return i.evalFunctionLiteral(node)
+	case *ast.CallExpression:
+		return i.evalCallExpression(node)
+	case *ast.ReturnStatement:
+		return i.evalReturnStatement(node)
+	case *ast.ExitStatement:
+		return i.evalExitStatement(node)
+	default:
+		return nil
+	}
+}
+```
+
+As you can see, it checks the type of each node and calls a corresponding
+function to actually execute that node. The interpreter's environment keeps
+track of identifiers, their values, and definitions - acting like a memory
+of sorts as it comes across new identifiers. Let's crack open the `evalVarStatement`
+function to see what happens when we come across a VAR node:
+
+```golang
+func (i *Interpreter) evalVarStatement(stmt *ast.VarStatement) interface{} {
+	val := i.Interpret(stmt.Value)
+	if val != nil {
+		i.env.Set(stmt.Name.Value, val)
+	}
+	return val
+}
+```
+
+First, we re-interpret the statement. For example, if the line of code in question
+is `var x = 3 + 3;`, we would want to evaluate `3 + 3` and assign x to that value.
+It's recursive in nature because we have to make sure we are acting on leaf nodes
+of the AST. Once we have that value, we can save it in our environment for retrieval
+at a later time, for example, if someone requested `var z = x + x;`.
+
+## Conclusion
+I hope that clears up some of the details of building an interpreted language.
+I would love any feedback on the post, on the language, etc. so please drop a 
+comment, pull request, or issue!
+
+If you want to peruse the code in all of its glory, please see my 
+[GitHub](https://github.com/afoley587/salami-lang).
+All of the code in this repo is written in go and can be run with `go run main.go /path/to/salami-file`.
