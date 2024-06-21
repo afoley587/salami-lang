@@ -271,21 +271,16 @@ func (l *Lexer) Lex() (LexPosition, tok.TokenType, string) {
 			panic(err)
 		}
 
-        // move to the next position
 		l.pos.Column++
 		switch r {
 		case '\n':
 			l.handleNewLine()
-        // return an assignment operator
 		case '=':
 			return l.pos, tok.ASSIGN, "="
-        // return a plus operator
 		case '+':
 			return l.pos, tok.PLUS, "+"
-        // return a minus operator
 		case '-':
 			return l.pos, tok.MINUS, "-"
-        // ...
 		case '*':
 			return l.pos, tok.ASTERISK, "*"
 		case '/':
@@ -311,16 +306,11 @@ func (l *Lexer) Lex() (LexPosition, tok.TokenType, string) {
 			if unicode.IsSpace(r) {
 				continue // nothing to do here, just move on
 			} else if unicode.IsDigit(r) {
-                // If this is a number, we should try to read the whole
-                // thing, return the token type as int, and the whole
-                // integer that was read
 				starts := l.pos
 				l.goBack()
 				literal := l.readDigit()
 				return starts, tok.INT, literal
 			} else if unicode.IsPrint(r) {
-                // If this is a string, we should try to read the whole
-                // thing and then lookup the type of keyword it is
 				starts := l.pos
 				l.goBack()
 				literal := l.readIdentifier()
@@ -333,6 +323,20 @@ func (l *Lexer) Lex() (LexPosition, tok.TokenType, string) {
 	}
 }
 ```
+
+The `Lex` function reads a character from the source code. Next,
+it sees if this token is any of our special tokens - characters
+such as assignment operators, plus operators, parentheses, etc.
+If it matches one of those, it can just return right away. However, 
+if this character is something else, we will need to handle it differently.
+If this is a number, such as 100, we want to read the whole number and return
+both a token type of INT and the literal 100 to the caller so it can be used 
+correctly. If this is some other word, such as `gorlami` or `variablename`, we want
+to again read the whole string and return that to the caller. The special keywords
+will be assigned more meaning in the parser however, it's important that the lexer
+realizes that this is a keyword and let's the parser know that. All unkown
+keywords, such as `variablename`, will be assumed to be identifiers and will be
+granted the IDENT token type.
 
 ### Parser + AST
 
