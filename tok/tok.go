@@ -19,6 +19,8 @@ const (
 	ASTERISK  = "*"
 	SLASH     = "/"
 	SEMICOLON = ";"
+	GT        = ">"
+	LT        = "<"
 
 	LPAREN = "("
 	RPAREN = ")"

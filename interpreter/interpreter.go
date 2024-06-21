@@ -33,6 +33,9 @@ func New() *Interpreter {
 }
 
 func (i *Interpreter) Interpret(node ast.Node) interface{} {
+	if i.Exited {
+		return i.ExitCode
+	}
 	switch node := node.(type) {
 	case *ast.Program:
 		return i.evalProgram(node)
@@ -93,6 +96,11 @@ func (i *Interpreter) evalInfixExpression(node *ast.InfixExpression) interface{}
 		return left * right
 	case "/":
 		return left / right
+	case ">":
+		return left > right
+	case "<":
+		return left < right
+
 	default:
 		return nil
 	}
@@ -115,6 +123,10 @@ func (i *Interpreter) evalBlockStatement(block *ast.BlockStatement) interface{} 
 
 	for _, stmt := range block.Statements {
 		result = i.Interpret(stmt)
+
+		if i.Exited {
+			return result
+		}
 	}
 
 	return result

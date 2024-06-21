@@ -44,6 +44,8 @@ func New(lexer *lexer.Lexer) *Parser {
 	p.registerInfix(tok.MINUS, p.parseInfixExpression)
 	p.registerInfix(tok.ASTERISK, p.parseInfixExpression)
 	p.registerInfix(tok.SLASH, p.parseInfixExpression)
+	p.registerInfix(tok.GT, p.parseInfixExpression)
+	p.registerInfix(tok.LT, p.parseInfixExpression)
 
 	return p
 }
@@ -134,6 +136,7 @@ const (
 	SUM     // +
 	PRODUCT // *
 	PREFIX  // -X or !X
+	COMPARE // > or <
 )
 
 var precedences = map[tok.TokenType]int{
@@ -141,6 +144,8 @@ var precedences = map[tok.TokenType]int{
 	tok.MINUS:    SUM,
 	tok.ASTERISK: PRODUCT,
 	tok.SLASH:    PRODUCT,
+	tok.GT:       COMPARE,
+	tok.LT:       COMPARE,
 }
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
