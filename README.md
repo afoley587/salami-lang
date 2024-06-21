@@ -21,7 +21,7 @@ t;
 
 would be `225`.
 
-For a live demo using the [functinons.salami](./examples/functions.salami) file, 
+For a live demo using the [functions.salami](./examples/functions.salami) file, 
 see the below video:
 
 ![Demo](./imgs/demo.gif)
