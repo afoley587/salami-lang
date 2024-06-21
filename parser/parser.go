@@ -38,6 +38,7 @@ func New(lexer *lexer.Lexer) *Parser {
 	p.registerPrefix(tok.IDENT, p.parseIdentifier)
 	p.registerPrefix(tok.TRUE, p.parseBooleanLiteral)
 	p.registerPrefix(tok.FALSE, p.parseBooleanLiteral)
+	p.registerPrefix(tok.FUNCTION, p.parseFunctionLiteral)
 
 	// Register infix parse functions
 	p.registerInfix(tok.PLUS, p.parseInfixExpression)
@@ -46,6 +47,7 @@ func New(lexer *lexer.Lexer) *Parser {
 	p.registerInfix(tok.SLASH, p.parseInfixExpression)
 	p.registerInfix(tok.GT, p.parseInfixExpression)
 	p.registerInfix(tok.LT, p.parseInfixExpression)
+	p.registerInfix(tok.LPAREN, p.parseCallExpression) // Register call expression
 
 	return p
 }
@@ -53,6 +55,7 @@ func New(lexer *lexer.Lexer) *Parser {
 func (p *Parser) nextToken() {
 	p.currentToken = p.peekToken
 	p.peekToken = p.lexer.NextToken()
+
 }
 
 func (p *Parser) peekTokenIs(t tok.TokenType) bool {
@@ -100,6 +103,10 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseVarStatement()
 	case tok.IF:
 		return p.parseIfExpression().(ast.Statement)
+	case tok.FUNCTION:
+		return p.parseFunctionStatement()
+	case tok.RETURN:
+		return p.parseReturnStatement()
 	case tok.EXIT:
 		return p.parseExitStatement()
 	default:
@@ -137,6 +144,7 @@ const (
 	PRODUCT // *
 	PREFIX  // -X or !X
 	COMPARE // > or <
+	CALL
 )
 
 var precedences = map[tok.TokenType]int{
@@ -146,6 +154,7 @@ var precedences = map[tok.TokenType]int{
 	tok.SLASH:    PRODUCT,
 	tok.GT:       COMPARE,
 	tok.LT:       COMPARE,
+	tok.LPAREN:   CALL,
 }
 
 func (p *Parser) parseExpression(precedence int) ast.Expression {
@@ -182,7 +191,8 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 }
 
 func (p *Parser) parseIdentifier() ast.Expression {
-	return &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
+	ident := &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
+	return ident
 }
 
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
@@ -203,7 +213,6 @@ func (p *Parser) parseIfExpression() ast.Expression {
 	expression := &ast.IfExpression{Token: p.currentToken}
 
 	if !p.expectPeek(tok.LPAREN) {
-		fmt.Println(string(p.currentToken.Literal))
 		fmt.Println("Expected '(' after 'if'")
 		return nil
 	}
@@ -269,6 +278,120 @@ func (p *Parser) parseExitStatement() *ast.ExitStatement {
 	p.nextToken()
 
 	stmt.Value = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(tok.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseFunctionLiteral() ast.Expression {
+	lit := &ast.FunctionLiteral{Token: p.currentToken}
+
+	if !p.expectPeek(tok.LPAREN) {
+		return nil
+	}
+
+	lit.Parameters = p.parseFunctionParameters()
+
+	if !p.expectPeek(tok.LBRACE) {
+		return nil
+	}
+
+	lit.Body = p.parseBlockStatement()
+
+	return lit
+}
+
+func (p *Parser) parseFunctionParameters() []*ast.Identifier {
+	var identifiers []*ast.Identifier
+
+	if p.peekTokenIs(tok.RPAREN) {
+		p.nextToken()
+		return identifiers
+	}
+
+	p.nextToken()
+
+	ident := &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
+	identifiers = append(identifiers, ident)
+
+	for p.peekTokenIs(tok.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		ident = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
+		identifiers = append(identifiers, ident)
+	}
+
+	if !p.expectPeek(tok.RPAREN) {
+		fmt.Println("Expected ')' after body")
+		return nil
+	}
+
+	return identifiers
+}
+
+func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
+	exp := &ast.CallExpression{Token: p.currentToken, Function: function}
+	exp.Arguments = p.parseExpressionList(tok.RPAREN)
+	return exp
+}
+
+func (p *Parser) parseExpressionList(end tok.TokenType) []ast.Expression {
+	list := []ast.Expression{}
+
+	if p.peekTokenIs(end) {
+		p.nextToken()
+		return list
+	}
+
+	p.nextToken()
+	list = append(list, p.parseExpression(LOWEST))
+
+	for p.peekTokenIs(tok.COMMA) {
+		p.nextToken()
+		p.nextToken()
+		list = append(list, p.parseExpression(LOWEST))
+	}
+
+	if !p.expectPeek(end) {
+		return nil
+	}
+
+	return list
+}
+
+func (p *Parser) parseFunctionStatement() ast.Statement {
+	stmt := &ast.FunctionStatement{Token: p.currentToken}
+
+	if !p.expectPeek(tok.IDENT) {
+		return nil
+	}
+
+	stmt.Name = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
+
+	if !p.expectPeek(tok.LPAREN) {
+		return nil
+	}
+
+	stmt.Parameters = p.parseFunctionParameters()
+
+	if !p.expectPeek(tok.LBRACE) {
+		return nil
+	}
+
+	stmt.Body = p.parseBlockStatement()
+
+	return stmt
+}
+
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	stmt := &ast.ReturnStatement{Token: p.currentToken}
+
+	p.nextToken()
+
+	stmt.ReturnValue = p.parseExpression(LOWEST)
 
 	if p.peekTokenIs(tok.SEMICOLON) {
 		p.nextToken()

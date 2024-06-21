@@ -98,3 +98,39 @@ type ExitStatement struct {
 
 func (es *ExitStatement) statementNode()  {}
 func (es *ExitStatement) Literal() string { return es.Token.Literal }
+
+type FunctionLiteral struct {
+	Token      tok.Tok // The 'gorlami' token
+	Parameters []*Identifier
+	Body       *BlockStatement
+}
+
+func (fl *FunctionLiteral) expressionNode() {}
+func (fl *FunctionLiteral) Literal() string { return fl.Token.Literal }
+
+type FunctionStatement struct {
+	Token      tok.Tok       // The 'gorlami' token
+	Name       *Identifier   // Function name
+	Parameters []*Identifier // Parameters are identifiers
+	Body       *BlockStatement
+}
+
+func (fs *FunctionStatement) statementNode()  {}
+func (fs *FunctionStatement) Literal() string { return fs.Token.Literal }
+
+type CallExpression struct {
+	Token     tok.Tok // The '(' token
+	Function  Expression
+	Arguments []Expression
+}
+
+func (ce *CallExpression) expressionNode() {}
+func (ce *CallExpression) Literal() string { return ce.Token.Literal }
+
+type ReturnStatement struct {
+	Token       tok.Tok // The 'dicocco' token
+	ReturnValue Expression
+}
+
+func (rs *ReturnStatement) statementNode()  {}
+func (rs *ReturnStatement) Literal() string { return rs.Token.Literal }

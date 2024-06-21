@@ -40,10 +40,6 @@ func (l *Lexer) Lex() (LexPosition, tok.TokenType, string) {
 		switch r {
 		case '\n':
 			l.handleNewLine()
-			// case '&':
-			// case '|':
-			// case '>':
-			// case '<':
 		case '=':
 			return l.pos, tok.ASSIGN, "="
 		case '+':
@@ -68,6 +64,8 @@ func (l *Lexer) Lex() (LexPosition, tok.TokenType, string) {
 			return l.pos, tok.GT, ">"
 		case '<':
 			return l.pos, tok.LT, "<"
+		case ',':
+			return l.pos, tok.COMMA, ","
 		default:
 			if unicode.IsSpace(r) {
 				continue // nothing to do here, just move on

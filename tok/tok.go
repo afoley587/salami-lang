@@ -26,23 +26,28 @@ const (
 	RPAREN = ")"
 	LBRACE = "{"
 	RBRACE = "}"
+	COMMA  = ","
 
 	// Keywords
-	VAR   = "VAR"
-	IF    = "IF"
-	ELSE  = "ELSE"
-	TRUE  = "TRUE"
-	FALSE = "FALSE"
-	EXIT  = "EXIT"
+	VAR      = "VAR"
+	IF       = "IF"
+	ELSE     = "ELSE"
+	TRUE     = "TRUE"
+	FALSE    = "FALSE"
+	EXIT     = "EXIT"
+	FUNCTION = "FUNCTION"
+	RETURN   = "RETURN"
 )
 
 var keywords = map[string]TokenType{
-	"var":   VAR,
-	"if":    IF,
-	"else":  ELSE,
-	"true":  TRUE,
-	"false": FALSE,
-	"exit":  EXIT,
+	"var":     VAR,
+	"if":      IF,
+	"else":    ELSE,
+	"true":    TRUE,
+	"false":   FALSE,
+	"exit":    EXIT,
+	"gorlami": FUNCTION,
+	"dicocco": RETURN,
 }
 
 func KeywordLookup(ident string) TokenType {

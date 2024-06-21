@@ -1,0 +1,11 @@
+gorlami sq(a) {
+    dicocco a * a;
+}
+
+gorlami add(a, b) {
+    dicocco sq(a) + b;
+}
+
+var x = 5;
+var y = 10;
+exit add(x, y);
