@@ -23,7 +23,9 @@ func (e *Environment) Set(name string, value int64) int64 {
 }
 
 type Interpreter struct {
-	env *Environment
+	env      *Environment
+	ExitCode int64
+	Exited   bool
 }
 
 func New() *Interpreter {
@@ -40,8 +42,16 @@ func (i *Interpreter) Interpret(node ast.Node) interface{} {
 		return i.evalIdentifier(node)
 	case *ast.IntegerLiteral:
 		return node.Value
+	case *ast.BooleanLiteral:
+		return node.Value
+	case *ast.IfExpression:
+		return i.evalIfExpression(node)
+	case *ast.BlockStatement:
+		return i.evalBlockStatement(node)
 	case *ast.InfixExpression:
 		return i.evalInfixExpression(node)
+	case *ast.ExitStatement:
+		return i.evalExitStatement(node)
 	default:
 		return nil
 	}
@@ -86,4 +96,35 @@ func (i *Interpreter) evalInfixExpression(node *ast.InfixExpression) interface{}
 	default:
 		return nil
 	}
+}
+
+func (i *Interpreter) evalIfExpression(node *ast.IfExpression) interface{} {
+	condition := i.Interpret(node.Condition).(bool)
+
+	if condition {
+		return i.Interpret(node.Consequence)
+	} else if node.Alternative != nil {
+		return i.Interpret(node.Alternative)
+	} else {
+		return nil
+	}
+}
+
+func (i *Interpreter) evalBlockStatement(block *ast.BlockStatement) interface{} {
+	var result interface{}
+
+	for _, stmt := range block.Statements {
+		result = i.Interpret(stmt)
+	}
+
+	return result
+}
+
+func (i *Interpreter) evalExitStatement(stmt *ast.ExitStatement) interface{} {
+	val := i.Interpret(stmt.Value)
+	if val != nil {
+		i.ExitCode = val.(int64)
+		i.Exited = true
+	}
+	return val
 }

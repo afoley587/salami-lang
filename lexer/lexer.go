@@ -56,6 +56,14 @@ func (l *Lexer) Lex() (LexPosition, tok.TokenType, string) {
 			return l.pos, tok.SLASH, "/"
 		case ';':
 			return l.pos, tok.SEMICOLON, ";"
+		case '(':
+			return l.pos, tok.LPAREN, "("
+		case ')':
+			return l.pos, tok.RPAREN, ")"
+		case '{':
+			return l.pos, tok.LBRACE, "{"
+		case '}':
+			return l.pos, tok.RBRACE, "}"
 		default:
 			if unicode.IsSpace(r) {
 				continue // nothing to do here, just move on

@@ -32,6 +32,10 @@ func main() {
 	interp := interpreter.New()
 	result := interp.Interpret(program)
 
-	fmt.Printf("Result: %v\n", result)
+	if interp.Exited {
+		fmt.Printf("Program exited with value: %v\n", interp.ExitCode)
+	} else {
+		fmt.Printf("Result: %v\n", result)
+	}
 
 }

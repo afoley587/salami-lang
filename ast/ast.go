@@ -63,3 +63,38 @@ type InfixExpression struct {
 
 func (ie *InfixExpression) expressionNode() {}
 func (ie *InfixExpression) Literal() string { return ie.Token.Literal }
+
+type IfExpression struct {
+	Token       tok.Tok // The 'if' token
+	Condition   Expression
+	Consequence *BlockStatement
+	Alternative *BlockStatement
+}
+
+func (ie *IfExpression) expressionNode() {}
+func (ie *IfExpression) statementNode()  {}
+func (ie *IfExpression) Literal() string { return ie.Token.Literal }
+
+type BlockStatement struct {
+	Token      tok.Tok // The '{' token
+	Statements []Statement
+}
+
+func (bs *BlockStatement) statementNode()  {}
+func (bs *BlockStatement) Literal() string { return bs.Token.Literal }
+
+type BooleanLiteral struct {
+	Token tok.Tok
+	Value bool
+}
+
+func (bl *BooleanLiteral) expressionNode() {}
+func (bl *BooleanLiteral) Literal() string { return bl.Token.Literal }
+
+type ExitStatement struct {
+	Token tok.Tok // The 'exit' token
+	Value Expression
+}
+
+func (es *ExitStatement) statementNode()  {}
+func (es *ExitStatement) Literal() string { return es.Token.Literal }
